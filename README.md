@@ -1,4 +1,4 @@
-# Ubuntu 26.04 on the ASUS ROG Flow Z13 (2025) as a local LLM workstation
+# Ubuntu 26.04 on the ASUS ROG Flow Z13 128GB (2025) as a local LLM workstation
 
 Everything needed to take an ASUS ROG Flow Z13 GZ302EA (AMD Ryzen AI MAX+ 395, "Strix Halo", 128 GB) from a fresh Ubuntu 26.04 install to a working local inference machine: GPU, NPU, hybrid, speech, image, audio and 3D generation, all reachable from your other devices, with every number in here measured on the actual hardware rather than quoted.
 
