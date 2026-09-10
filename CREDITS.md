@@ -57,7 +57,3 @@ Canonical, for shipping a complete ROCm stack and the `amdxdna` NPU driver in th
 ## The people on forums
 
 Several specific findings came from individual forum and issue-tracker posts: the Ollama `Host` header behaviour behind Tailscale serve, the `BootDriverFlags` registry fix for booting Windows from USB storage, and the Open WebUI API key visibility quirk. Those threads are linked from the relevant pages where they were the source.
-
-## Tooling
-
-This build was done with Claude Code, and the documentation was drafted with its help. The mistakes recorded in [gotchas](docs/11-gotchas.md) under "conclusions that were wrong" were its mistakes, corrected when the measurements disagreed.
