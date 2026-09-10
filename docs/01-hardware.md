@@ -45,7 +45,7 @@ The argument for a large carve-out is that the GPU reaches memory faster through
 
 So the fixed split is not free performance, but it is small. What Auto gives back is 92 GiB of system RAM for everything that is not a model: PyTorch venvs, Lemonade's backend servers, Docker, a browser, and engines like Halogen that allocate from the host side and cannot see a carve-out at all.
 
-The one thing Auto takes away is the GTT cap. At half of system RAM it is 61 GiB, so `gpt-oss:120b` at 65 GB and `laguna-S-2.1` at 92 GB no longer load in Ollama. `amdgpu.gttsize=<MiB>` on the kernel command line raises it; `scripts/24-gttsize.sh` sets 106 GiB and needs a reboot. Raising it does not reserve anything; it only permits.
+The one thing Auto takes away is the GTT cap. At half of system RAM it is 61 GiB, so `gpt-oss:120b` at 65 GB and `laguna-S-2.1` at 92 GB no longer load in Ollama. Two kernel parameters raise it, and both are needed. `amdgpu.gttsize=<MiB>` is the GPU's own limit; `ttm.pages_limit` and `ttm.page_pool_size` (in 4 KiB pages) are the page allocator's, and they also default to half of RAM. ROCm reports the lower of the two, so after a first reboot with only `gttsize` set, `mem_info_gtt_total` read 106 GiB and Ollama still saw 61.3 GiB. `scripts/24-gttsize.sh` sets all three to 106 GiB and needs a reboot. Raising them does not reserve anything; it only permits.
 
 Switching is a BIOS trip either way: Advanced, UMA Frame Buffer Size. F2 at power on, or `systemctl reboot --firmware-setup`.
 

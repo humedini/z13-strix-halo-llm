@@ -14,7 +14,7 @@ On the 96 GiB carve-out described in [hardware](01-hardware.md), the host has 30
 | System RAM | 30 GiB | 122 GiB |
 | GTT (what the GPU can borrow) | 15 GiB | 61.3 GiB |
 
-Everything else on the machine now runs from GTT. What that costs is measured in [benchmarks](05-benchmarks.md#carve-out-versus-gtt): about 7 to 9 percent on generation, nothing on prefill. What it breaks: Ollama sees 61 GiB, so `laguna-S-2.1` (92 GiB) and `gpt-oss:120b` (65 GiB) no longer load until the GTT cap is raised. `scripts/24-gttsize.sh` sets `amdgpu.gttsize=108544` (106 GiB) on the kernel command line for that; it needs a reboot.
+Everything else on the machine now runs from GTT. What that costs is measured in [benchmarks](05-benchmarks.md#carve-out-versus-gtt): about 7 to 9 percent on generation, nothing on prefill. What it breaks: Ollama sees 61 GiB, so `laguna-S-2.1` (92 GiB) and `gpt-oss:120b` (65 GiB) no longer load until the GTT cap is raised. `scripts/24-gttsize.sh` sets `amdgpu.gttsize=108544` (106 GiB) and the matching `ttm.pages_limit` on the kernel command line for that; it needs a reboot, and both are required, see [hardware](01-hardware.md).
 
 Getting into the BIOS on this machine: hold F2 at power on, or `systemctl reboot --firmware-setup`. The latter can be refused with "operation inhibited" while a session holds an inhibitor lock; close what is holding it or use F2.
 

@@ -67,7 +67,7 @@ Every one of these cost time. Each is explained in full elsewhere; this is the i
 - **`--pl1/--pl2/--pl3` need a base `--set`** or z13ctl prints help and does nothing. [ASUS hardware](10-asus-hardware.md)
 - **Battery limit resets on boot and resume.** systemd unit that waits for the late-created attribute. [ASUS hardware](10-asus-hardware.md)
 - **Hibernate is off under Secure Boot** by kernel lockdown policy, and no amount of swap changes that. [ASUS hardware](10-asus-hardware.md)
-- **GTT is only 15 GiB** with the 96/30 split. If it fills, weights are spilling and everything crawls. Under Auto it is 61 GiB and is where the weights live; the two largest Ollama models then do not fit until `amdgpu.gttsize` is raised. [Hardware](01-hardware.md)
+- **GTT is only 15 GiB** with the 96/30 split. If it fills, weights are spilling and everything crawls. Under Auto it is 61 GiB and is where the weights live; the two largest Ollama models then do not fit until `amdgpu.gttsize` **and** `ttm.pages_limit` are raised. Raising only the first changes `mem_info_gtt_total` and nothing else; ROCm takes the lower limit. [Hardware](01-hardware.md)
 - **The carve-out is worth 7 to 9 percent on generation, nothing on prefill.** Measured, not assumed. [Hardware](01-hardware.md)
 - **A sleeping Lightspeed mouse looks like a broken driver.** The device node exists from the stored pairing; `hidpp_battery_*` appearing is the real "connected" signal. [Hardware](01-hardware.md)
 - **A 10GbE Thunderbolt adapter needs the USB4 port and a `bolt` authorisation.** [Hardware](01-hardware.md)

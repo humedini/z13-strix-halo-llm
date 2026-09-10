@@ -40,7 +40,7 @@ Search for `<` in any script to find what needs filling in. Several scripts deri
 | `21-windows-usb-boot-prep.sh` | yes | Prepares a Windows NVMe in a USB enclosure to boot, by editing its SYSTEM hive offline. Untested at time of writing; the enclosure had not arrived. |
 | `22-arp-multihome.sh` | yes | `arp_ignore=1` / `arp_announce=2` sysctls so Wi-Fi and wired on one subnet stop answering ARP for each other. Fixes NM withdrawing the wired interface's routes. |
 | `23-halogen-tailnet.sh` | yes | Publishes Halogen's API via `tailscale serve` on 8731, after checking it accepts a foreign `Host` header. |
-| `24-gttsize.sh` | yes | Adds `amdgpu.gttsize=108544` to the kernel command line so the GPU can borrow 106 GiB under the Auto split. Reboot required. |
+| `24-gttsize.sh` | yes | Adds `amdgpu.gttsize=108544` plus `ttm.pages_limit` and `ttm.page_pool_size` to the kernel command line so the GPU can borrow 106 GiB under the Auto split. Both limits default to half of RAM and ROCm honours the lower. Reboot required. |
 
 Script `02` does not exist; that number was the community installer itself.
 
