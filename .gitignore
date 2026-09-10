@@ -1,0 +1,5 @@
+*.deb
+*.bak
+*.bak-*
+*.log
+__pycache__/

@@ -1,0 +1,185 @@
+--- llm.sh.orig	2026-09-07 20:40:48.882137325 +0100
++++ llm.sh	2026-09-07 20:59:41.728389093 +0100
+@@ -72,18 +72,39 @@
+ # Detect ROCm version
+ # Returns: version string (e.g., "7.2.0") or "unknown"
+ get_rocm_version() {
++    # PATCHED: original piped rocminfo into grep with no failure guard. Under
++    # `set -euo pipefail` a non-matching grep exits 1, pipefail propagates it,
++    # and the caller's `version=$(get_rocm_version)` assignment kills the script.
++    # Ubuntu's rocminfo never emits "ROCm Runtime Version:", so this always fired.
++    local v=""
+     if command -v rocminfo &>/dev/null; then
+-        rocminfo 2>/dev/null | grep -oP 'ROCm Runtime Version: \K[0-9.]+' | head -1
+-    elif [[ -f /opt/rocm/.info/version ]]; then
+-        cat /opt/rocm/.info/version 2>/dev/null
+-    else
+-        echo "unknown"
++        v=$(rocminfo 2>/dev/null | grep -oP 'ROCm Runtime Version: \K[0-9.]+' | head -1 || true)
++    fi
++    if [[ -z "$v" && -f /opt/rocm/.info/version ]]; then
++        v=$(cat /opt/rocm/.info/version 2>/dev/null || true)
++    fi
++    # Ubuntu packages ROCm into /usr, not /opt/rocm — ask dpkg as a last resort.
++    if [[ -z "$v" ]] && command -v dpkg-query &>/dev/null; then
++        v=$(dpkg-query -W -f='${Version}' rocminfo 2>/dev/null | grep -oP '^[0-9]+\.[0-9]+(\.[0-9]+)?' || true)
+     fi
++    echo "${v:-unknown}"
+ }
+ 
+ # Check if ROCm version is 7.2 or higher (native gfx1151 support)
+ rocm_has_native_gfx1151() {
+     local version
++
++    # PATCHED: authoritative check first. If the installed ROCm runtime actually
++    # enumerates a gfx1151 agent, it supports the ISA natively and no
++    # HSA_OVERRIDE_GFX_VERSION is needed. The original gated purely on a version
++    # string >= 7.2; Ubuntu 26.04 ships ROCm 7.1.1, which DOES support gfx1151,
++    # so the version test wrote HSA_OVERRIDE_GFX_VERSION=11.0.0 and forced
++    # gfx1100 kernels onto Strix Halo hardware.
++    if command -v rocminfo &>/dev/null && \
++       rocminfo 2>/dev/null | grep -q 'gfx1151'; then
++        return 0
++    fi
++
+     version=$(get_rocm_version)
+     
+     if [[ "$version" == "unknown" ]]; then
+@@ -235,11 +256,20 @@
+     info "Fetching latest llama.cpp release..."
+     
+     local version
+-    version=$(curl -fsSL https://api.github.com/repos/ggerganov/llama.cpp/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "b8043")
++    # PATCHED: the repo moved to ggml-org, and `releases/latest` now resolves to a
++    # semver tag (e.g. v0.4.0) that carries NO binary assets. Prebuilt binaries
++    # only ship in the bNNNN build releases, so select the newest of those.
++    version=$(curl -fsSL "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30" \
++              | grep -oP '"tag_name": "\Kb[0-9]+' | head -1 || true)
++    if [[ -z "$version" ]]; then
++        warning "Could not resolve a llama.cpp bNNNN build tag; skipping llama.cpp."
++        return 0
++    fi
+     
+-    # Linux releases are .tar.gz; Vulkan build supports AMD GPUs via Vulkan compute
+-    local vulkan_url="https://github.com/ggerganov/llama.cpp/releases/download/${version}/llama-${version}-bin-ubuntu-vulkan-x64.tar.gz"
+-    local fallback_url="https://github.com/ggerganov/llama.cpp/releases/download/${version}/llama-${version}-bin-ubuntu-x64.tar.gz"
++    # Linux releases are .tar.gz; Vulkan build supports AMD GPUs via Vulkan compute.
++    # On Strix Halo (gfx1151) the Vulkan backend generally outperforms HIP/ROCm.
++    local vulkan_url="https://github.com/ggml-org/llama.cpp/releases/download/${version}/llama-${version}-bin-ubuntu-vulkan-x64.tar.gz"
++    local fallback_url="https://github.com/ggml-org/llama.cpp/releases/download/${version}/llama-${version}-bin-ubuntu-x64.tar.gz"
+     
+     local tmpdir
+     tmpdir=$(mktemp -d)
+@@ -250,9 +280,9 @@
+     elif curl -fsSL "$fallback_url" -o "${tmpdir}/llama.tar.gz" 2>/dev/null; then
+         warning "Vulkan build not available, using CPU build"
+     else
+-        error "Failed to download llama.cpp binaries"
++        warning "Failed to download llama.cpp binaries — continuing without it"
+         rm -rf "$tmpdir"
+-        return 1
++        return 0
+     fi
+     
+     tar -xzf "${tmpdir}/llama.tar.gz" -C "${tmpdir}"
+@@ -371,7 +401,7 @@
+ install_openwebui() {
+     print_section "Installing Open WebUI"
+     
+-    install_docker_if_needed
++    install_docker_if_needed || true
+     
+     if docker ps --format '{{.Names}}' | grep -q "^open-webui$"; then
+         info "Open WebUI already running"
+@@ -396,7 +426,7 @@
+ install_sillytavern() {
+     print_section "Installing SillyTavern"
+     
+-    install_docker_if_needed
++    install_docker_if_needed || true
+     
+     if docker ps --format '{{.Names}}' | grep -q "^sillytavern$"; then
+         info "SillyTavern already running"
+@@ -466,7 +496,7 @@
+ install_librechat() {
+     print_section "Installing LibreChat"
+     
+-    install_docker_if_needed
++    install_docker_if_needed || true
+     
+     local install_dir="/opt/librechat"
+     
+@@ -573,17 +603,17 @@
+     for c in "${choices[@]}"; do
+         c=$(echo "$c" | tr -d ' ')
+         case "$c" in
+-            1) install_lemonade ;;
+-            2) install_ollama ;;
+-            3) install_lmstudio ;;
+-            4) install_llamacpp ;;
+-            5) install_vllm ;;
++            1) install_lemonade || true ;;
++            2) install_ollama || true ;;
++            3) install_lmstudio || true ;;
++            4) install_llamacpp || true ;;
++            5) install_vllm || true ;;
+             6)
+-                install_lemonade
+-                install_ollama
+-                install_lmstudio
+-                install_llamacpp
+-                install_vllm
++                install_lemonade || true
++                install_ollama || true
++                install_lmstudio || true
++                install_llamacpp || true
++                install_vllm || true
+                 ;;
+             7) return ;;
+         esac
+@@ -610,15 +640,15 @@
+     for c in "${choices[@]}"; do
+         c=$(echo "$c" | tr -d ' ')
+         case "$c" in
+-            1) install_openwebui ;;
+-            2) install_sillytavern ;;
+-            3) install_textgenwebui ;;
+-            4) install_librechat ;;
++            1) install_openwebui || true ;;
++            2) install_sillytavern || true ;;
++            3) install_textgenwebui || true ;;
++            4) install_librechat || true ;;
+             5)
+-                install_openwebui
+-                install_sillytavern
+-                install_textgenwebui
+-                install_librechat
++                install_openwebui || true
++                install_sillytavern || true
++                install_textgenwebui || true
++                install_librechat || true
+                 ;;
+             6) return ;;
+         esac
+@@ -638,7 +668,7 @@
+     read -r -p "Install Python AI libraries? (y/N): " choice || choice="n"
+     
+     if [[ "$choice" =~ ^[Yy] ]]; then
+-        install_python_ai_libs
++        install_python_ai_libs || true
+     fi
+ }
+ 
+@@ -683,9 +713,9 @@
+     configure_amd_gpu_env
+     
+     # Sequential flow
+-    ask_backends
+-    ask_frontends
+-    ask_libraries
++    ask_backends || true
++    ask_frontends || true
++    ask_libraries || true
+     
+     # Summary
+     show_summary

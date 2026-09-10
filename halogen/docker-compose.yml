@@ -1,0 +1,56 @@
+# halogen-flash-server, adapted for Docker on this machine.
+#
+# Changes from upstream docker-compose.yml:
+#   - group_add uses numeric GIDs: "keep-groups" is podman-only. render=990,
+#     video=44 on this host (check with: getent group render video).
+#   - API published on 127.0.0.1 only. Upstream publishes 8731 on all
+#     interfaces; this machine's rule is loopback + tailscale serve.
+#   - HALOGEN_MODELS defaults to ~/halogen-models.
+#
+# REQUIRES a BIOS UMA setting of Auto / 512 MB, NOT the 96 GiB carve-out this
+# machine normally runs. Halogen allocates weights from host RAM; a carve-out
+# is memory it cannot see. See ~/z13-setup/halogen/README.md.
+services:
+  engine:
+    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.6
+    command: ["engine"]
+    environment:
+      HALOGEN_BIND: 0.0.0.0            # container-internal only; not published
+      HALOGEN_VISION_TOWER: ${HALOGEN_VISION_TOWER:-}
+    volumes:
+      - ${HALOGEN_MODELS:-${HOME}/halogen-models}:/models:ro
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt: ["seccomp:unconfined"]
+    ipc: host
+    ulimits:
+      memlock: -1
+    group_add: ["990", "44"]           # render, video
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/halogen-healthcheck", "engine"]
+      interval: 10s
+      timeout: 35s
+      retries: 3
+      start_period: 20m                # first start can take a long time; see upstream issue #2
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.6
+    command: ["api"]
+    depends_on:
+      engine:
+        condition: service_healthy
+    environment:
+      HALOGEN_ENGINE: engine:8730
+    volumes:
+      - ${HALOGEN_MODELS:-${HOME}/halogen-models}:/models:ro
+    ports:
+      - "127.0.0.1:8731:8731"          # loopback only; publish via tailscale serve
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/halogen-healthcheck", "api"]
+      interval: 10s
+      timeout: 35s
+      retries: 3
+      start_period: 2m
+    restart: unless-stopped
