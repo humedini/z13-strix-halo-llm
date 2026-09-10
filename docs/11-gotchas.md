@@ -19,7 +19,7 @@ Every one of these cost time. Each is explained in full elsewhere; this is the i
 - **`git` and `build-essential` are not on a fresh desktop install.** The installer assumes they are. [Base install](02-base-install.md)
 - **`~` inside a sudo script is `/root`.** Resolve paths relative to the script. Cost one failed run.
 - **`pkill -f "pattern"` matches the shell running it** if the pattern is in the command line. Killed the shell twice. Use `pgrep -x` or kill by PID.
-- **`!` at the start of a line in bash is logical NOT**, not history, not a Claude Code prefix. `! install -d ... && printf ...` creates the directory and then stops, because `! install` succeeded-inverted-to-failure ends the `&&` chain.
+- **`!` at the start of a line in bash is logical NOT**, not history and not a prefix for anything else. `! install -d ... && printf ...` creates the directory and then stops, because `! install` succeeded-inverted-to-failure ends the `&&` chain.
 
 ## ROCm and NPU
 
