@@ -58,6 +58,39 @@ Read this carefully. The models differ. Qwen3.8-Flash-Next is a newer and larger
 
 What Halogen unambiguously wins is prefill. Long documents, big code files and RAG contexts hit the model at 665 tok/s, three times anything Ollama managed, and that is what time to first token is made of.
 
+## Independent confirmation
+
+The day after these measurements, Donato Capitella published [a benchmark of Qwen3.8-Flash-Next on Strix Halo](https://www.youtube.com/watch?v=Nm_zN6RQ_eE) covering llama.cpp on ROCm, Nathan Wilson's Vulkan fork, [EngramHalo.cpp](https://github.com/Aristo94/EngramHalo.cpp) and Halogen, with speed measured at context depths up to 64K and quality checked with his 19-task [Terminal Bench Mini](https://kyuz0.github.io/terminal-bench-mini/). The video is sponsored by AMD and says so. His Halogen figures are 752 tok/s prefill and 41 tok/s decode at 32K context, still 700 and 37 at 64K, roughly double the Vulkan fork on both axes. Halogen completed all 19 tasks, 18 at the first attempt; EngramHalo completed 16. His machine is an AMD AI Halo mini desktop, the same silicon in a chassis with a larger power budget and a proper cooler; the depth comparison is in the table below.
+
+His explanation of the model's n-gram embedding table is the clearest available: 51 billion learned parameters that are looked up rather than multiplied, placed after the first layer so the lookup overlaps GPU work, gated per token, and small enough per lookup that the table can live on SSD. That is why the Halogen weights are 115 GiB and why the engine wants host RAM rather than a VRAM carve-out.
+
+Halogen's author has said he intends to open-source the server and the kernel optimisation method. Until then it is a binary you cannot inspect, which is fine on a home machine and worth knowing.
+
+## Depth sweep, and what the power budget is worth
+
+Prompted by the video, the same benchmark at four context depths, three runs each, 400 generated tokens, client-side timing cross-checked against the server log. Depths are measured prompt tokens.
+
+| Prompt tokens | Time to first token | Prefill | Generation | TDP |
+|---|---|---|---|---|
+| 2.9K | 4.0 s | 737 tok/s | 34.9 tok/s | 70 W |
+| 12K | 11.5 s | 1041 tok/s | 33.1 tok/s | 70 W |
+| 24K | 22.0 s | 1086 tok/s | 33.3 tok/s | 70 W |
+| 48K | 42.9 s | 1116 tok/s | 32.6 tok/s | 70 W |
+| 3K | 4.0 s | 738 tok/s | 34.6 tok/s | 90 W |
+| 47K | 39.0 s | 1207 tok/s | 33.4 tok/s | 90 W |
+
+Three things fall out of it.
+
+**Prefill gets faster with depth.** Larger batches use the GPU better, and at 48K the tablet at 70 W is ahead of the 752 tok/s the video measured at 32K. The engine's own published figure is 1424 tok/s at 32K, measured with the IOMMU off, which its author says is worth 13 to 16 percent of prefill. This machine has the IOMMU on, in passthrough mode. Turning it off is a kernel parameter and a reboot, and on a portable machine it is also the protection against DMA attacks over USB4, so it is a choice rather than a default.
+
+**Generation does not care about power.** 90 W bought 8 percent of prefill and nothing on generation, which is memory bound. The 20 W sat unused, and the fans ran at 8600 rpm for it. On this machine the 70 W profile is the ceiling that matters, and the quiet profile costs less than it sounds.
+
+**Generation barely moves with depth.** Sixteen times the context cost 7 percent. That is the engine's design working: a single KV pool with the prompt cache kept in place.
+
+The remaining gap is generation: 33 to 37 tok/s here against the video's 41 and the engine's published 41.7 mean with speculative decoding, whose serial figure is 34.1. Speculative decoding is on here too, committing between 1.8 and 2.7 tokens per round depending on the text, and a code prompt was no faster than prose. The likeliest explanations are the IOMMU, which sits in the path of the paged n-gram table that every token reads, and the prompt set the mean was taken over. Untested.
+
+The engine author publishes a kernel command line for reproducing the figures: `amdgpu.vm_update_mode=0 amdgpu.noretry=0 amdgpu.gttsize=126976 ttm.pages_limit=32505856 amdgpu.sg_display=0 amd_iommu=off`. This machine runs `gttsize` and `ttm.pages_limit` from script 24 and none of the rest.
+
 ## Two measurement traps
 
 **Thinking models stream `reasoning_content` first.** Halogen's model reasons before it answers, and the OpenAI-compatible stream carries that in `delta.reasoning_content`, with `delta.content` empty until the answer starts. A client that starts its generation timer on the first `content` chunk never starts it, reports time to first token equal to the whole request, and divides 400 tokens by zero seconds. The first version of `bench-openai.py` did exactly that and reported `0.00 tok/s`. Count either field.
@@ -67,5 +100,7 @@ What Halogen unambiguously wins is prefill. Long documents, big code files and R
 ## Where it fits
 
 Halogen is the right tool when the workload is long prompts on the biggest model, and the whole machine can be given to it. It is the wrong tool for the mixed use this machine mostly sees, where Ollama's model switching, Open WebUI integration and 15 second model loads matter more than a third more tokens per second. Both can be installed. Only one can be loaded.
+
+`scripts/engine.sh halogen` and `scripts/engine.sh ollama` swap between the two, unloading whatever the other holds, since they cannot share the memory. `scripts/bench-depth.py` is the depth sweep.
 
 The BIOS trade is the real decision. Auto costs every other model on the machine 7 to 9 percent of its generation speed and, without the `gttsize` change, the two largest Ollama models altogether. It makes the 122 GiB of host RAM available to everything else, which the 30 GiB split never did. That is a better default for a machine that is also used as a computer.

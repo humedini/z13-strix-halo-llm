@@ -52,6 +52,8 @@ Script `02` does not exist; that number was the community installer itself.
 | `bench-flm.py` | FastFlowLM on the NPU, using its own reported speeds. Needs `flm serve <model> --port 11436`. |
 | `bench-lemonade.py` | Lemonade, using llama.cpp's `timings` block. Port 13305. |
 | `bench-openai.py` | Any OpenAI-compatible server, streaming, with time to first token. Counts `reasoning_content` as well as `content`, which thinking models need. `bench-openai.py <base-url> <model> [runs]` |
+| `bench-depth.py` | Same, at several context depths. `bench-depth.py <base-url> <model> [runs] [2000,8000,16000,32000]` |
+| `engine.sh` | `halogen`, `ollama` or `status`: swap the machine between the two engines, unloading whatever the other holds. |
 | `bench-npu-vs-gpu.sh` | Wraps any of the above and samples APU package power once a second. `bench-npu-vs-gpu.sh LABEL <command...>` |
 
 ## Speech

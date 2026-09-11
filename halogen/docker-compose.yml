@@ -12,7 +12,7 @@
 # is memory it cannot see. See ~/z13-setup/halogen/README.md.
 services:
   engine:
-    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.6
+    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.7
     command: ["engine"]
     environment:
       HALOGEN_BIND: 0.0.0.0            # container-internal only; not published
@@ -36,7 +36,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.6
+    image: ghcr.io/peonist-ai/halogen-flash-server:0.5.7
     command: ["api"]
     depends_on:
       engine:
