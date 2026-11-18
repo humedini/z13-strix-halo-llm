@@ -12,10 +12,15 @@ This is a write-up of a real build, including the things that went wrong and why
 | `gpt-oss:120b` | 65 GB | ~5B (MoE) | **31.6 tok/s** | best speed/capability balance |
 | `laguna-S-2.1` | 96 GB | unknown | **22.3 tok/s** | largest that fits, 3.6 GiB spare |
 | `qwen3.5:122b` | 81 GB | 10B (MoE) | **22.0 tok/s** | most capable |
-| `qwen3.8:27b` | 17 GB | 27B (dense) | 10.7 tok/s | dense, avoid |
-| Halogen `qwen3.8-flash-next` | 115 GiB | unknown | **35.3 tok/s**, 665 tok/s prefill | separate engine, needs the BIOS on Auto |
+| `qwen3.8:27b` | 17 GB | 27B (dense) | 10.7 tok/s | dense; 24.6 tok/s with a speculative drafter under [Gufo](docs/14-gufo.md) |
+| Halogen `qwen3.8-flash-next` | 115 GiB | unknown | **35.3 tok/s**, 665 tok/s prefill | separate engine, needs the BIOS on Auto; retired |
+| Gufo `qwen3.8-flash-next` + MTP | 111 GB | unknown | **33.5 tok/s**, 1,080 tok/s prefill | replaced Halogen, no BIOS change |
+
+Ollama rows are under the 96 GiB carve-out; under Auto they are 10 to 13 percent lower on generation. The same `qwen3-coder` file under llama.cpp Vulkan generates at 67.8 tok/s against Ollama's 42.1 measured the same day.
 
 The single most important finding: **generation speed tracks active parameters, not model size.** The 65 GB MoE model runs three times faster than the 17 GB dense one. See [benchmarks](docs/05-benchmarks.md) and [inference](docs/04-inference.md).
+
+The third, found later: **the engine is a bigger lever than any setting.** Same weights, llama.cpp Vulkan is 61 percent faster than Ollama on a MoE model, and speculative decoding more than doubles a dense one. See [Vulkan](docs/13-vulkan.md) and [Gufo](docs/14-gufo.md).
 
 The second most important: **the BIOS VRAM carve-out is worth about 7 to 9 percent on generation and nothing on prefill.** The machine ran a 96 GiB carve-out for the numbers above, then moved to Auto to run [Halogen](docs/12-halogen.md); the difference is measured in [benchmarks](docs/05-benchmarks.md#carve-out-versus-gtt).
 
@@ -40,7 +45,11 @@ Ubuntu 26.04 ships kernel 7.0, which supports this hardware in tree. **No DKMS, 
 | [09 Remote access](docs/09-remote-access.md) | Tailscale only, loopback everywhere, and Ollama's 403 |
 | [10 ASUS hardware](docs/10-asus-hardware.md) | z13ctl, TDP profiles, why custom fan curves are worse, battery persistence |
 | [11 Gotchas](docs/11-gotchas.md) | Everything that cost time, in one place |
-| [12 Halogen](docs/12-halogen.md) | A second engine for the biggest model: the BIOS trade it forces, measured against Ollama, two benchmark traps |
+| [12 Halogen](docs/12-halogen.md) | A second engine for the biggest model: the BIOS trade it forces, measured against Ollama, two benchmark traps. Retired in favour of Gufo |
+| [13 Vulkan](docs/13-vulkan.md) | llama.cpp Vulkan against Ollama on identical weights, the settings that matter, Ollama files llama.cpp will not load |
+| [14 Gufo](docs/14-gufo.md) | The engine that replaced Halogen, and speculative decoding (MTP, DFlash2, DSpark) on three model families |
+| [15 ComfyUI](docs/15-comfyui.md) | Image generation on gfx1151, the MIOpen segfault and its fix, Qwen Image 2.1 timings |
+| [16 Living with it](docs/16-living-with-it.md) | Sleep that does not wake, USB4 dock video, SD card automount and suspend, the 2 TB SSD swap, `iommu=pt` |
 | [CREDITS](CREDITS.md) | The people whose work this stands on |
 
 ## Scripts
@@ -64,7 +73,7 @@ Numbered scripts in [`scripts/`](scripts/) reproduce the build. Each is idempote
 
 ## Honesty about scope
 
-This documents one machine, one distro version, and about two days of work. Measurements are from that hardware and that software on those dates. Several conclusions contradict things published elsewhere, and where that happens the measurement and the method are given so you can check. Two claims made along the way were later found wrong and corrected; both corrections are recorded rather than erased.
+This documents one machine and one distro version: about two days of build, then two months of daily use (docs 13 to 16). Measurements are from that hardware and that software on those dates. Several conclusions contradict things published elsewhere, and where that happens the measurement and the method are given so you can check. Two claims made along the way were later found wrong and corrected; both corrections are recorded rather than erased.
 
 ## Licence
 

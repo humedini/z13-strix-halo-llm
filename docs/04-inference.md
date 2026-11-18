@@ -101,7 +101,7 @@ Ollama uses ROCm. llama.cpp is installed separately as the Vulkan build. Publish
 
 Source: the [Soot / Silicon Vulkan vs ROCm comparison](https://www.soothill.io/blog/2026/08/03/llamacpp-vulkan-vs-rocm-strix-halo/), which is a careful piece of work. This build's own Ollama/ROCm measurement of 21.95 tok/s on the 122B lines up almost exactly with their 21.3, which is reassuring for both.
 
-If generation speed on a small MoE is what you care about, the Vulkan llama.cpp build may be worth an A/B. It was not chased here because the ROCm path was already tuned and measured.
+**Measured later on this machine: on identical weights, llama.cpp Vulkan generates 61 percent faster than Ollama on a MoE model and 13 percent faster on a dense one.** See [Vulkan](13-vulkan.md). For speculative decoding and a third engine, see [Gufo](14-gufo.md).
 
 ## Memory headroom
 

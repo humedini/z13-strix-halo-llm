@@ -51,10 +51,19 @@ Script `02` does not exist; that number was the community installer itself.
 | `bench-model.py` | Ollama. Unique prompt per run to defeat the cache, 400 token generations, median of three. `bench-model.py <model> [runs] [num_predict]` |
 | `bench-flm.py` | FastFlowLM on the NPU, using its own reported speeds. Needs `flm serve <model> --port 11436`. |
 | `bench-lemonade.py` | Lemonade, using llama.cpp's `timings` block. Port 13305. |
-| `bench-openai.py` | Any OpenAI-compatible server, streaming, with time to first token. Counts `reasoning_content` as well as `content`, which thinking models need. `bench-openai.py <base-url> <model> [runs]` |
+| `bench-openai.py` | Any OpenAI-compatible server, streaming, with time to first token. Counts `reasoning_content` as well as `content`, which thinking models need. Sends `OPENAI_API_KEY` as a Bearer token if set. `bench-openai.py <base-url> <model> [runs]` |
 | `bench-depth.py` | Same, at several context depths. `bench-depth.py <base-url> <model> [runs] [2000,8000,16000,32000]` |
-| `engine.sh` | `halogen`, `ollama` or `status`: swap the machine between the two engines, unloading whatever the other holds. |
+| `engine.sh` | `gufo`, `ollama` or `status`: swap the machine between Gufo and Ollama, unloading whatever the other holds. (Was `halogen` until Halogen was retired.) |
+| `vulkan-bench.sh` | llama-bench from the official llama.cpp Vulkan build on the same blob Ollama uses. `vulkan-bench.sh <ollama-model> [server]` |
+| `serve-bench.sh` | Starts llama-server (Vulkan), runs `bench-openai.py` against it, stops it. Refuses if the GPU is busy. `serve-bench.sh LABEL -- -m <gguf> [args]` |
 | `bench-npu-vs-gpu.sh` | Wraps any of the above and samples APU package power once a second. `bench-npu-vs-gpu.sh LABEL <command...>` |
+
+## Engines and image generation
+
+| Script | Purpose |
+|---|---|
+| `gufo-up.sh` | Qwen3.8 Flash-Next under Gufo with MTP on 127.0.0.1:8099, API key in `~/.config/gufo/api-key`. `up`, `down`, `status`, `key`. Refuses if the GPU is busy. See [Gufo](../docs/14-gufo.md). |
+| `comfyui-start.sh` | ComfyUI on loopback with MIOpen re-enabled, which stops Qwen image editing segfaulting on gfx1151. See [ComfyUI](../docs/15-comfyui.md). |
 
 ## Speech
 

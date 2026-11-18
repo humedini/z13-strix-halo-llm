@@ -1,5 +1,7 @@
 # 12. Halogen: a second inference engine, and the BIOS trade it forces
 
+> **Superseded, 2026-09-24.** Halogen has been removed from this machine. [Gufo](14-gufo.md) matches it on generation with 1.6 times its prefill, needs no BIOS change, and has a thinking switch and an API key. This page stays as the record of what Halogen measured and the traps it exposed, which still apply to any engine.
+
 [peonist-ai/halogen-flash-server](https://github.com/peonist-ai/halogen-flash-server) is a purpose-built server for Strix Halo that runs its own model format, `halogen-qwen3.8-flash-next`, a 4-bit Qwen3.8-Flash-Next at 115 GiB of weights. Upstream claims a large speed advantage over llama.cpp-based stacks on this hardware. This page is what it took to run it, what it measured, and what it cost elsewhere.
 
 ## The BIOS requirement

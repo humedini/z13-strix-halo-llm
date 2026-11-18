@@ -82,6 +82,14 @@ hipconfig --version      # 7.1.52801 on the archive version
 
 AMD's guide mentions `amd-ttm` for tuning how much system memory the GPU may borrow beyond VRAM. Under the 96 GiB carve-out there is little to borrow; under Auto the same knob matters and is set with `amdgpu.gttsize` instead, see [hardware](01-hardware.md). With 96 GiB of VRAM assigned in BIOS there is little to borrow and only 30 GiB to lend, so it was left at default. If your split is different, it may matter more.
 
+## PyTorch attention and ROCm 10
+
+Checked 2026-09-17 with `torch 2.14.0+rocm7.2`, the wheel used for [speech](08-speech.md) and [ComfyUI](15-comfyui.md).
+
+Flash and memory-efficient scaled dot product attention are **already the default** on gfx1151. At 8K tokens, 32 heads, bf16: about 105 ms against 1,370 ms for the plain math path. `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1`, which older guides recommend for RDNA3, makes no difference on this version. Leave it out.
+
+ROCm 10.0 (27 August 2026) is the first release that officially lists Strix Halo on Ubuntu 26.04 with kernel 7.0. At the time of checking, PyTorch had stable wheels only for `rocm7.2` and `rocm7.14`, with ROCm 10 wheels in nightlies only (torch 2.15 dev), and AMD's own `gfx1151` wheel index lagged at torch 2.11. Stable ROCm 10 wheels were expected with PyTorch 2.15. Not retested here yet. When you do, use a second venv beside the working one; never upgrade torch in place in a venv you depend on.
+
 ## DKMS
 
 AMD's guide is explicit that Ryzen APUs require the inbox kernel driver and that `amdgpu-dkms` must not be installed. On kernel 7.0 this is satisfied automatically. Script `07-rocm-complete.sh` warns if `amdgpu-dkms` ever appears. So does the Lemonade PPA pinning, since that PPA ships `amdxdna-dkms` which is equally unwanted. See [Lemonade](07-lemonade.md).

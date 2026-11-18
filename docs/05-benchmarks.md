@@ -32,6 +32,8 @@ All via Ollama on ROCm under the 96 GiB carve-out, `OLLAMA_CONTEXT_LENGTH=32768`
 
 ## Carve-out versus GTT
 
+The model table above was measured under the 96 GiB carve-out. Under Auto, with the quiet profile, `gpt-oss:120b` later measured 27.3 to 27.8 tok/s and `qwen3.5:122b` 19.1 tok/s; see [Vulkan](13-vulkan.md#ollama-under-auto-for-comparison).
+
 The same two models, same prompts, same TDP, once with weights in the 96 GiB carve-out and once through GTT under the Auto split. Three runs each, no other load.
 
 | Model | Carve-out generation | GTT generation | Change | Carve-out prefill | GTT prefill |
@@ -118,6 +120,8 @@ Through Lemonade, on the GPU unless stated. See [Lemonade](07-lemonade.md).
 scripts/bench-model.py gpt-oss:120b 3            # Ollama
 scripts/bench-flm.py gpt-oss:20b 3               # FastFlowLM, needs flm serve on 11436
 scripts/bench-lemonade.py <model> 3              # Lemonade, port 13305
-scripts/bench-openai.py <base-url> <model> 3     # any OpenAI-compatible server, streaming; used for Halogen
+scripts/bench-openai.py <base-url> <model> 3     # any OpenAI-compatible server, streaming; Halogen, Gufo, llama-server
+scripts/vulkan-bench.sh <ollama-model>          # llama-bench on the same blob Ollama uses
+scripts/serve-bench.sh LABEL -- -m <gguf> ...    # llama-server Vulkan: start, measure, stop
 scripts/bench-npu-vs-gpu.sh LABEL <any of the above>   # with power sampling
 ```

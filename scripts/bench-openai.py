@@ -8,8 +8,9 @@ cache, 400-token generations, median of three with spread.
 
 Usage: bench-openai.py <base_url> <model> [runs]
    e.g. bench-openai.py http://127.0.0.1:8731/v1 qwen3.8-flash-next 3
+If OPENAI_API_KEY is set it is sent as a Bearer token (Gufo with --api-key).
 """
-import json, statistics, sys, time, urllib.request, uuid
+import json, os, statistics, sys, time, urllib.request, uuid
 
 base = sys.argv[1].rstrip("/"); model = sys.argv[2]
 runs = int(sys.argv[3]) if len(sys.argv) > 3 else 3
@@ -26,8 +27,9 @@ for i in range(runs):
             "memory-bandwidth-bound accelerator, why mixture-of-experts models behave "
             "differently from dense ones, and how quantisation interacts with both."}],
         "max_tokens": 400, "temperature": 0}).encode()
-    req = urllib.request.Request(f"{base}/chat/completions", body,
-                                 {"Content-Type": "application/json"})
+    hdrs = {"Content-Type": "application/json"}
+    if os.environ.get("OPENAI_API_KEY"): hdrs["Authorization"] = "Bearer " + os.environ["OPENAI_API_KEY"]
+    req = urllib.request.Request(f"{base}/chat/completions", body, hdrs)
     t0 = time.time(); t_first = None; n_chunks = 0; usage = None
     with urllib.request.urlopen(req, timeout=3600) as r:
         for line in r:

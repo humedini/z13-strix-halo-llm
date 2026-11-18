@@ -72,13 +72,34 @@ Every one of these cost time. Each is explained in full elsewhere; this is the i
 - **A sleeping Lightspeed mouse looks like a broken driver.** The device node exists from the stored pairing; `hidpp_battery_*` appearing is the real "connected" signal. [Hardware](01-hardware.md)
 - **A 10GbE Thunderbolt adapter needs the USB4 port and a `bolt` authorisation.** [Hardware](01-hardware.md)
 
-## Halogen
+## Halogen (retired, see [Gufo](14-gufo.md))
 
 - **It cannot see a VRAM carve-out.** Weights are pinned host RAM. The BIOS has to be on Auto, which is a reboot and a small speed cost for everything else. [Halogen](12-halogen.md)
 - **Podman compose needs `group_add` for `render` and `video` under Docker**, or the container cannot open `/dev/kfd`. [Halogen](12-halogen.md)
 - **Thinking models stream `reasoning_content` before `content`.** A benchmark that waits for `content` reports zero generation speed. [Halogen](12-halogen.md)
 - **Two-request prefill subtraction is defeated by the prefix cache.** Subtracting a `max_tokens=1` run from a full run overstates generation by 40 percent if the prompts share a prefix. [Halogen](12-halogen.md)
 - **The health check needs a long `start_period`.** First starts of 2 to 44 minutes are reported upstream; Docker's default 0 s would restart-loop it. [Halogen](12-halogen.md)
+
+## Engines
+
+- **The engine matters more than any setting inside it.** Same GGUF, llama.cpp Vulkan generates 61 percent faster than Ollama on a MoE model. [Vulkan](13-vulkan.md)
+- **The installer's `/usr/local/bin/llama-*` binaries are CPU only.** Check `--list-devices` before benchmarking anything. [Vulkan](13-vulkan.md)
+- **Not every Ollama blob is a portable GGUF.** `gpt-oss` is tagged `gptoss`, and `qwen3.5:122b` has three rope sections where llama.cpp expects four. [Vulkan](13-vulkan.md)
+- **`-ub 2048` is worth 30 percent of llama.cpp prefill** over the default 512. [Vulkan](13-vulkan.md)
+- **Gufo rejects IQ quants.** Use K quants. [Gufo](14-gufo.md)
+- **Use numeric GIDs for `render` and `video` in containers.** The names often do not exist inside the image. [Gufo](14-gufo.md)
+- **Drafting more tokens can be slower.** MTP on the 27B: two per round 17.8 tok/s, three per round 15.1. [Gufo](14-gufo.md)
+- **ComfyUI segfaults on Qwen image editing** because it disables MIOpen on RDNA3+ and PyTorch's native bf16 Conv3d crashes on gfx1151. `COMFYUI_ENABLE_MIOPEN=1 MIOPEN_FIND_MODE=FAST`. [ComfyUI](15-comfyui.md)
+- **`TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL` does nothing** on torch 2.14; flash attention is already on. [ROCm](03-rocm.md#pytorch-attention-and-rocm-10)
+
+## Daily use
+
+- **s2idle occasionally never wakes**, with nothing logged after suspend entry. Idle suspend on AC is off here. [Living with it](16-living-with-it.md)
+- **Video through a USB4 dock hangs the display for 10 seconds at a time** (`flip_done timed out`). Use the native HDMI port. [Living with it](16-living-with-it.md)
+- **Ubuntu never automounts ext4 SD cards** (`64-ext4.rules` sets `UDISKS_AUTO=0`). A udev rule per UUID fixes it. [Living with it](16-living-with-it.md)
+- **The SD reader drops the card in s2idle.** Unmount in a sleep hook. [Living with it](16-living-with-it.md)
+- **After cloning onto an SSD, trim at once and let it idle** before measuring. The clone marks every block as written. [Living with it](16-living-with-it.md)
+- **`iommu=pt` raised SSD writes by 60 percent and coincided with SD card filesystem damage.** Reverted. [Living with it](16-living-with-it.md)
 
 ## Two conclusions that were wrong and corrected
 
